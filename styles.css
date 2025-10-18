@@ -27,13 +27,16 @@ Fonts:
 body {
     font-family: 'Arial', sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
     min-height: 100vh;
     margin: 0;
     background-color: #77a8bb;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+    padding: 0 20px; /* Add padding to ensure content doesn't touch the edges */
 }
 
 .logo {
@@ -47,6 +50,7 @@ body {
     width: 100%;
     max-width: 900px; /* Max width for large screens */
     padding: 0 10px;
+    z-index: 1; /* Ensure game content stays above the water images */
 }
 
 .score-panel {
@@ -119,6 +123,8 @@ body {
     max-width: 800px;
     height: 75vh; /* Use viewport height for responsiveness */
     background-color: #e6f7ff;
+    background-image: 
+        linear-gradient(to bottom, #a3d9ff 0%, #e6f7ff 100%);
     border: 2px solid #333;
     border-radius: 8px;
     position: relative;
@@ -139,6 +145,27 @@ body {
 
 #start-btn:hover {
     background-color: #45a049;
+}
+
+.sound-btn {
+    padding: 8px 12px;
+    background-color: transparent;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.sound-btn:hover {
+    background-color: #f0f0f0;
+    transform: scale(1.05);
+}
+
+.sound-btn.muted {
+    color: #888;
+    background-color: #f0f0f0;
 }
 
 .score {
@@ -271,6 +298,13 @@ body {
     }
 }
 
+@media (max-width: 1200px) {
+    .game-wrapper, .score-panel, #game-container {
+        width: 90%;
+        max-width: 800px;
+    }
+}
+
 @media (max-width: 850px) {
     .game-wrapper, .score-panel, #game-container {
         width: 95vw;
@@ -326,6 +360,12 @@ body {
     .button-group button {
         width: 100%;
     }
+    
+    .charity-link {
+        font-size: 16px;
+        padding: 8px 15px;
+        width: 90%;
+    }
 }
 
 /* Modal styles */
@@ -347,14 +387,36 @@ body {
 }
 
 .modal-content {
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background-color: #e6f7ff; /* Light blue background */
+    background-image: linear-gradient(to bottom, #c9e9ff 0%, #e6f7ff 100%); /* Water-like gradient */
+    padding: 35px;
+    border-radius: 12px;
+    border: 2px solid #2E9DF7; /* charity:water blue border */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 1px 30px rgba(255,255,255,0.6);
     text-align: center;
-    max-width: 500px;
-    width: 80%;
-    animation: modalFadeIn 0.4s;
+    max-width: 580px;
+    width: 85%;
+    animation: modalFadeIn 0.5s;
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-content::before {
+    content: '';
+    position: absolute;
+    width: 150%;
+    height: 30px;
+    background-color: rgba(46, 157, 247, 0.2); /* charity:water blue */
+    bottom: -15px;
+    left: -25%;
+    border-radius: 50%;
+    animation: waterWave 3s infinite ease-in-out;
+}
+
+@keyframes waterWave {
+    0% { transform: translateX(-5%) scale(1); }
+    50% { transform: translateX(5%) scale(1.05); }
+    100% { transform: translateX(-5%) scale(1); }
 }
 
 @keyframes modalFadeIn {
@@ -369,14 +431,41 @@ body {
 }
 
 .modal h2 {
-    color: #333;
+    color: #2E9DF7; /* charity:water blue */
     margin-top: 0;
-    font-size: 28px;
+    font-size: 32px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
 .modal p {
     font-size: 18px;
     margin: 15px 0;
+}
+
+/* Close button styling */
+.close-btn {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    background: none;
+    border: none;
+    color: #2E9DF7; /* charity:water blue */
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    color: #F5402C; /* Red color when hovering */
+    transform: scale(1.1);
 }
 
 .level-announcement {
@@ -409,6 +498,80 @@ body {
     40% { transform: translate(-50%, -50%) scale(1); }
     80% { opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* Cloud animations */
+.cloud {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 100px;
+    width: 150px;
+    height: 60px;
+    top: 15%;
+    animation: float-cloud linear infinite;
+    z-index: 1;
+}
+
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+}
+
+.cloud::before {
+    width: 80px;
+    height: 80px;
+    top: -30px;
+    left: 15px;
+}
+
+.cloud::after {
+    width: 60px;
+    height: 60px;
+    top: -20px;
+    right: 15px;
+}
+
+.cloud:nth-child(1) {
+    transform: scale(1.2);
+    top: 10%;
+    animation-duration: 100s;
+    opacity: 0.8;
+}
+
+.cloud:nth-child(2) {
+    transform: scale(0.8);
+    top: 5%;
+    left: -150px;
+    animation-duration: 120s;
+    animation-delay: -30s;
+    opacity: 0.7;
+}
+
+.cloud:nth-child(3) {
+    transform: scale(1);
+    top: 15%;
+    left: -250px;
+    animation-duration: 80s;
+    animation-delay: -70s;
+    opacity: 0.9;
+}
+
+@keyframes float-cloud {
+    from { 
+        left: -180px; 
+    }
+    to { 
+        left: 100%; 
+    }
+}
+
+/* Time bonus animation */
+@keyframes fadeUpAndOut {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-30px); opacity: 0; }
 }
 
 #end-game-message {
@@ -456,4 +619,141 @@ body {
     display: flex;
     justify-content: center;
     margin-top: 10px;
+}
+
+/* Charity footer styling */
+.charity-footer {
+    width: 100%;
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 30px;
+    padding: 15px 0;
+    position: relative;
+    z-index: 5; /* Ensure it stays above the water images */
+}
+
+.charity-link {
+    display: inline-block;
+    color: #159A48;
+    background-color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 30px;
+    border: 3px solid #2E9DF7;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.charity-link:hover {
+    background-color: #2E9DF7;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.charity-link:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Difficulty menu styling */
+.difficulty-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.difficulty-option {
+    background-color: #2E9DF7; /* charity:water blue */
+    border: 2px solid #1e82d9;
+    border-radius: 8px;
+    padding: 15px;
+    width: 180px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+.difficulty-option:hover {
+    transform: translateY(-5px) scale(1.05);
+    background-color: #FFC907; /* charity:water yellow */
+    border-color: #e0b000;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    color: #333;
+}
+
+.difficulty-option.selected {
+    border-color: #4FCB53; /* Green */
+    background-color: #FFC907; /* Yellow */
+    color: #333;
+    box-shadow: 0 5px 15px rgba(79, 203, 83, 0.3);
+    transform: scale(1.05);
+}
+
+.difficulty-option h3 {
+    margin-top: 0;
+    color: inherit;
+    font-size: 22px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    margin-bottom: 8px;
+}
+
+.difficulty-option p {
+    font-size: 14px;
+    color: inherit;
+    margin-bottom: 0;
+    opacity: 0.9;
+}
+
+/* Water images styling */
+.water-image {
+    position: fixed;
+    height: 100vh;
+    width: 20%;
+    z-index: -1;
+    opacity: 0.5; /* Slightly more transparent for better visibility of content */
+    pointer-events: none; /* To ensure clicks pass through */
+    display: block;
+    overflow: hidden;
+    box-shadow: inset 0 0 15px 5px rgba(0, 0, 0, 0.2);
+}
+
+.water-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.left-water {
+    left: 0;
+    top: 0;
+}
+
+.right-water {
+    right: 0;
+    top: 0;
+}
+
+/* Hide water images on smaller screens */
+@media (max-width: 1200px) {
+    .water-image {
+        width: 15%;
+    }
+}
+
+@media (max-width: 992px) {
+    .water-image {
+        width: 10%;
+    }
+}
+
+@media (max-width: 768px) {
+    .water-image {
+        display: none;
+    }
 }

@@ -11,6 +11,10 @@ let scorePerDrop = 1; // Score added per good drop, increases by 2 per level
 let lives = 3; // Player starts with 3 lives
 let redDropRate = 0.10; // Fixed rate for red drops, starts at 10% and doubles per level, capped at 70%
 let highScore = 0; // Player's highest score achieved
+let gameDifficulty = "normal"; // Default difficulty setting
+let isEndlessMode = false; // Flag for endless mode
+let dropSpeedMultiplier = 1.0; // Multiplier for drop falling speed
+let endlessSpeedInterval; // Interval for increasing speed in endless mode
 
 // Arrays of game-end messages
 const winningMessages = [
@@ -33,7 +37,108 @@ const losingMessages = [
 document.addEventListener("DOMContentLoaded", () => {
   highScore = parseInt(localStorage.getItem("highScore")) || 0;
   document.getElementById("high-score").textContent = highScore;
+  
+  // Initialize sound elements
+  initSounds();
 });
+
+// Sound management
+const sounds = {
+  dropSound: null,
+  badDropSound: null,
+  levelCompleteSound: null,
+  gameOverSound: null,
+  backgroundMusic: null,
+  isMuted: false
+};
+
+// Sound toggle functionality
+document.getElementById("sound-toggle").addEventListener("click", function() {
+  sounds.isMuted = !sounds.isMuted;
+  this.textContent = sounds.isMuted ? "🔇" : "🔊";
+  this.classList.toggle("muted", sounds.isMuted);
+  
+  if (sounds.isMuted) {
+    // Pause background music if it's playing
+    if (sounds.backgroundMusic && !sounds.backgroundMusic.paused) {
+      sounds.backgroundMusic.pause();
+    }
+  } else {
+    // Resume background music if game is running
+    if (gameRunning && sounds.backgroundMusic) {
+      sounds.backgroundMusic.play().catch(e => console.log("Playback prevented by browser policy"));
+    }
+  }
+});
+
+function initSounds() {
+  // Get all audio elements
+  sounds.dropSound = document.getElementById("drop-sound");
+  sounds.badDropSound = document.getElementById("bad-drop-sound");
+  sounds.levelCompleteSound = document.getElementById("level-complete-sound");
+  sounds.gameOverSound = document.getElementById("game-over-sound");
+  sounds.backgroundMusic = document.getElementById("background-music");
+  
+  // Set volumes
+  sounds.dropSound.volume = 0.5;
+  sounds.badDropSound.volume = 0.5;
+  sounds.levelCompleteSound.volume = 0.7;
+  sounds.gameOverSound.volume = 0.7;
+  sounds.backgroundMusic.volume = 0.3;
+  
+  // Add error handling for sound loading
+  const audioElements = [
+    sounds.dropSound, 
+    sounds.badDropSound, 
+    sounds.levelCompleteSound, 
+    sounds.gameOverSound, 
+    sounds.backgroundMusic
+  ];
+  
+  audioElements.forEach(audio => {
+    // Add error listener
+    audio.addEventListener('error', function(e) {
+      console.warn(`Error loading sound file: ${audio.id}`, e);
+    });
+    
+    // Add load listener for debugging
+    audio.addEventListener('canplaythrough', function() {
+      console.log(`Sound file loaded successfully: ${audio.id}`);
+    });
+  });
+}
+
+// Function to play a sound
+function playSound(sound) {
+  if (!sounds.isMuted && sound) {
+    // Check if sound is loaded and ready to play
+    if (sound.readyState >= 2) {
+      // Reset sound to beginning
+      sound.currentTime = 0;
+      sound.play().catch(e => {
+        // Handle autoplay restrictions by showing a play button
+        if (e.name === 'NotAllowedError') {
+          console.log("Audio play was prevented by browser. User interaction required.");
+        } else {
+          console.warn("Error playing sound:", e);
+        }
+      });
+    } else {
+      // Sound is not loaded yet, add an event listener to play it when ready
+      const onCanPlay = () => {
+        sound.play().catch(e => console.warn("Error playing sound after load:", e));
+        sound.removeEventListener('canplaythrough', onCanPlay);
+      };
+      
+      sound.addEventListener('canplaythrough', onCanPlay);
+      
+      // Add a timeout in case the sound doesn't load
+      setTimeout(() => {
+        sound.removeEventListener('canplaythrough', onCanPlay);
+      }, 5000);
+    }
+  }
+}
 
 // Calculate score thresholds for each level
 function calculateLevelThresholds(maxLevels = 10) {
@@ -76,8 +181,78 @@ function flashScreenRed() {
   }, 300);
 }
 
-// Wait for button click to start the game
-document.getElementById("start-btn").addEventListener("click", startGame);
+// Wait for button click to show difficulty menu
+document.getElementById("start-btn").addEventListener("click", function() {
+  // Initialize audio after user interaction to overcome autoplay restrictions
+  initializeAudioAfterUserInteraction();
+  showDifficultyMenu();
+});
+
+// Function to initialize audio after user interaction
+function initializeAudioAfterUserInteraction() {
+  // Try to play and immediately pause all sounds to unlock them
+  const audioElements = [
+    sounds.dropSound, 
+    sounds.badDropSound, 
+    sounds.levelCompleteSound, 
+    sounds.gameOverSound, 
+    sounds.backgroundMusic
+  ];
+  
+  audioElements.forEach(audio => {
+    if (audio) {
+      // Short play/pause to unlock audio
+      audio.volume = 0;
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        // Reset volume to original values
+        if (audio === sounds.dropSound || audio === sounds.badDropSound) {
+          audio.volume = 0.5;
+        } else if (audio === sounds.levelCompleteSound || audio === sounds.gameOverSound) {
+          audio.volume = 0.7;
+        } else if (audio === sounds.backgroundMusic) {
+          audio.volume = 0.3;
+        }
+      }).catch(e => {
+        console.warn("Could not initialize audio:", e);
+      });
+    }
+  });
+}
+
+// Function to show the difficulty selection menu
+function showDifficultyMenu() {
+  document.getElementById("difficulty-modal").classList.add("show");
+  
+  // Add click event listener for the close button
+  document.getElementById("close-difficulty-btn").addEventListener("click", function() {
+    document.getElementById("difficulty-modal").classList.remove("show");
+  });
+  
+  // Add click event listeners for difficulty options
+  const difficultyOptions = document.querySelectorAll(".difficulty-option");
+  difficultyOptions.forEach(option => {
+    option.addEventListener("click", function() {
+      // Remove selected class from all options
+      difficultyOptions.forEach(opt => opt.classList.remove("selected"));
+      // Add selected class to clicked option
+      this.classList.add("selected");
+      
+      // Set the game difficulty
+      gameDifficulty = this.getAttribute("data-difficulty");
+      
+      // Check if endless mode is selected
+      isEndlessMode = gameDifficulty === "endless";
+      
+      // Hide the modal
+      document.getElementById("difficulty-modal").classList.remove("show");
+      
+      // Start the game with the selected difficulty
+      startGame();
+    });
+  });
+}
 
 // Add event listener for the "Play Again" button
 document.getElementById("play-again-btn").addEventListener("click", function() {
@@ -85,8 +260,8 @@ document.getElementById("play-again-btn").addEventListener("click", function() {
   document.getElementById("end-game-modal").classList.remove("show");
   // Reset to level 1
   currentLevel = 1;
-  // Start a new game
-  startGame();
+  // Show difficulty menu again
+  showDifficultyMenu();
 });
 
 // Add event listener for the "Continue to Next Level" button
@@ -157,27 +332,92 @@ function startGame() {
 
   gameRunning = true;
   
-  // Reset timer to 30 seconds for level 1
-  timeRemaining = 30;
+  // Start background music
+  playSound(sounds.backgroundMusic);
+  
+  // Set initial game parameters based on difficulty
+  switch(gameDifficulty) {
+    case "easy":
+      timeRemaining = 45; // More time in easy mode
+      lives = 5; // More lives in easy mode
+      dropSpeedMultiplier = 0.7; // Slower drops in easy mode
+      break;
+    case "normal":
+      timeRemaining = 30; // Standard time
+      lives = 3; // Standard lives
+      dropSpeedMultiplier = 1.0; // Standard speed
+      break;
+    case "hard":
+      timeRemaining = 30; // Same time as normal
+      lives = 3; // Same lives as normal
+      dropSpeedMultiplier = 1.5; // Faster drops in hard mode
+      break;
+    case "endless":
+      timeRemaining = 30; // Start with standard time
+      lives = 3; // Standard lives
+      dropSpeedMultiplier = 1.0; // Start with standard speed
+      
+      // Set up speed increase interval for endless mode (every 90 seconds)
+      endlessSpeedInterval = setInterval(() => {
+        // Increase drop speed by 10% every 90 seconds
+        dropSpeedMultiplier += 0.1;
+        
+        // Show a notification of increasing speed
+        const speedNotification = document.createElement("div");
+        speedNotification.className = "level-announcement";
+        speedNotification.textContent = "Speed Increased!";
+        speedNotification.style.fontSize = "36px";
+        document.getElementById("game-container").appendChild(speedNotification);
+        
+        // Make it visible
+        speedNotification.classList.add("show");
+        
+        // Remove after animation
+        setTimeout(() => {
+          speedNotification.classList.remove("show");
+          setTimeout(() => speedNotification.remove(), 500);
+        }, 2000);
+        
+      }, 90000); // 90 seconds (1:30)
+      break;
+  }
+  
   document.getElementById("time").textContent = timeRemaining;
   
-  // Reset score, level and scorePerDrop
+  // Reset score and game parameters
   score = 0;
   currentLevel = 1;
   scorePerDrop = 1; // Reset score per drop to 1 for level 1
-  lives = 3; // Reset lives to 3 at the start of a new game
   redDropRate = 0.10; // Reset red drop rate to 10%
   document.getElementById("score").textContent = score;
-  document.getElementById("level").textContent = currentLevel;
+  document.getElementById("level").textContent = isEndlessMode ? "Endless" : currentLevel;
   updateLivesDisplay(); // Update the lives display
-  updateProgressBar(0);
+  
+  // Only show progress bar if not in endless mode
+  if (!isEndlessMode) {
+    document.querySelector(".progress-container").style.display = "block";
+    updateProgressBar(0);
+  } else {
+    document.querySelector(".progress-container").style.display = "none";
+  }
   
   // Start the countdown timer
   timerInterval = setInterval(updateTimer, 1000);
 
-  // Create new drops every second, adjusted for level
-  // More aggressive decrease in interval for faster spawn rate
-  const dropInterval = Math.max(200, 1000 - ((currentLevel - 1) * 150)); // Drops appear faster with higher levels
+  // Create new drops every second, adjusted for level and difficulty
+  const baseInterval = 1000; // Base interval of 1 second
+  let dropInterval;
+  
+  if (isEndlessMode) {
+    // In endless mode, start with standard interval
+    dropInterval = Math.max(200, baseInterval / dropSpeedMultiplier);
+  } else {
+    // In level-based modes, adjust for level and difficulty
+    dropInterval = Math.max(200, baseInterval - ((currentLevel - 1) * 150));
+    // Apply difficulty multiplier
+    dropInterval = Math.max(200, dropInterval / dropSpeedMultiplier);
+  }
+  
   dropMaker = setInterval(createDrop, dropInterval);
 }
 
@@ -233,7 +473,11 @@ function startNextLevel() {
 
   // Create new drops with increasing frequency based on level
   // More aggressive decrease in interval for faster spawn rate
-  const dropInterval = Math.max(200, 1000 - ((currentLevel - 1) * 150));
+  let dropInterval = Math.max(200, 1000 - ((currentLevel - 1) * 150));
+  
+  // Apply difficulty multiplier
+  dropInterval = Math.max(200, dropInterval / dropSpeedMultiplier);
+  
   dropMaker = setInterval(createDrop, dropInterval);
   
   // Show a level announcement
@@ -243,6 +487,9 @@ function startNextLevel() {
 function showLevelCompleteModal() {
   // Pause the game
   pauseGame();
+  
+  // Play level complete sound
+  playSound(sounds.levelCompleteSound);
   
   // Update the level score display
   document.getElementById("level-score").textContent = score;
@@ -281,6 +528,11 @@ function showLevelCompleteModal() {
 }
 
 function showLevelAnnouncement() {
+  // Skip in endless mode
+  if (isEndlessMode) {
+    return;
+  }
+  
   // Update the level number in the announcement
   document.getElementById("announcement-level").textContent = currentLevel;
   
@@ -309,6 +561,11 @@ function updateTimer() {
 
 // Function to update the progress bar
 function updateProgressBar(currentScore) {
+  // Skip in endless mode
+  if (isEndlessMode) {
+    return;
+  }
+  
   const progressBar = document.getElementById("score-progress");
   
   // Get current level threshold and next level threshold
@@ -375,9 +632,24 @@ function endGame(levelCompleted = false, noLivesRemaining = false) {
   // Stop the game
   gameRunning = false;
   
+  // Stop the background music
+  if (sounds.backgroundMusic) {
+    sounds.backgroundMusic.pause();
+    sounds.backgroundMusic.currentTime = 0;
+  }
+  
+  // Play game over sound
+  playSound(sounds.gameOverSound);
+  
   // Clear all intervals
   clearInterval(dropMaker);
   clearInterval(timerInterval);
+  
+  // Also clear endless mode speed increase interval if it exists
+  if (endlessSpeedInterval) {
+    clearInterval(endlessSpeedInterval);
+    endlessSpeedInterval = null;
+  }
   
   // Check if the current score is a new high score
   if (score > highScore) {
@@ -472,9 +744,16 @@ function createDrop() {
   const xPosition = Math.random() * (gameWidth - 30);
   drop.style.left = xPosition + "px";
 
-  // Vary the fall speed based on level (faster drops as levels increase)
-  // More aggressive decrease in duration per level for faster drops
-  const baseDuration = Math.max(1.5, 4.5 - (currentLevel * 0.5)); // More aggressive scaling
+  // Vary the fall speed based on level and difficulty
+  let baseDuration;
+  
+  if (isEndlessMode) {
+    // In endless mode, use a fixed base duration affected by the increasing speed multiplier
+    baseDuration = 4.5 / dropSpeedMultiplier;
+  } else {
+    // In level modes, speed based on level and difficulty multiplier
+    baseDuration = Math.max(1.5, (4.5 - (currentLevel * 0.5)) / dropSpeedMultiplier);
+  }
   
   // Make bad drops fall faster than good drops
   let fallDuration;
@@ -501,6 +780,9 @@ function createDrop() {
     drop.style.transform = "rotate(15deg) scale(1.5)";
     
     if (drop.classList.contains("bad-drop")) {
+      // Play bad drop sound
+      playSound(sounds.badDropSound);
+      
       // Decrease lives when bad drop is clicked
       lives--;
       updateLivesDisplay();
@@ -518,8 +800,41 @@ function createDrop() {
       // Add a screen flash effect to indicate life lost
       flashScreenRed();
     } else {
+      // Play good drop sound
+      playSound(sounds.dropSound);
+      
       // Increase score when good drop is clicked
       score += scorePerDrop;
+      
+      // In endless mode, increase time for each caught drop
+      if (isEndlessMode && !drop.classList.contains("bad-drop")) {
+        timeRemaining += 2; // Add 2 seconds for each good drop
+        document.getElementById("time").textContent = timeRemaining;
+        
+        // Visual indicator for time bonus
+        const timeBonus = document.createElement("div");
+        timeBonus.className = "time-bonus";
+        timeBonus.textContent = "+2s";
+        timeBonus.style.position = "absolute";
+        timeBonus.style.color = "#4FCB53";
+        timeBonus.style.fontWeight = "bold";
+        timeBonus.style.zIndex = "100";
+        
+        // Position it near the drop
+        const dropRect = drop.getBoundingClientRect();
+        const containerRect = document.getElementById("game-container").getBoundingClientRect();
+        timeBonus.style.left = (dropRect.left - containerRect.left) + "px";
+        timeBonus.style.top = (dropRect.top - containerRect.top - 20) + "px";
+        
+        // Add animation
+        timeBonus.style.animation = "fadeUpAndOut 1s forwards";
+        
+        // Add to the container
+        document.getElementById("game-container").appendChild(timeBonus);
+        
+        // Remove after animation
+        setTimeout(() => timeBonus.remove(), 1000);
+      }
       
       // Add splash effect for good drops
       createSplash(drop, "rgba(46, 157, 247, 0.7)");
@@ -528,8 +843,10 @@ function createDrop() {
     // Update score display
     document.getElementById("score").textContent = score;
     
-    // Update the progress bar based on current score
-    updateProgressBar(score);
+    // Update the progress bar based on current score (only if not in endless mode)
+    if (!isEndlessMode) {
+      updateProgressBar(score);
+    }
     
     // Remove the drop after a short delay, giving players visual feedback
     // and making it feel more responsive even with near-misses

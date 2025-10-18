@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="water-image left-water">
+        <img src="img/water2.jpg" alt="Water Image Left">
+    </div>
+
     <div class="game-wrapper">
         <img src="img/cw_logo-horizontal.png" alt="Charity: Water Logo" class="logo">
         <h1 class="game-title">Rain Catcher</h1>
@@ -18,6 +22,7 @@
             <div class="timer">Time: <span id="time">30</span>s</div>
             <div class="lives">Lives: <span id="lives-display">❤️❤️❤️</span></div>
             <button id="start-btn">Start Game</button>
+            <button id="sound-toggle" class="sound-btn" aria-label="Toggle sound">🔊</button>
         </div>
         
         <div class="progress-container">
@@ -25,7 +30,36 @@
         </div>
         
         <div id="game-container">
+            <div class="cloud"></div>
+            <div class="cloud"></div>
+            <div class="cloud"></div>
             <div id="level-announcement" class="level-announcement">Level <span id="announcement-level">1</span></div>
+        </div>
+    </div>
+    
+    <!-- Difficulty Menu Modal -->
+    <div id="difficulty-modal" class="modal">
+        <div class="modal-content">
+            <button id="close-difficulty-btn" class="close-btn" aria-label="Close menu">&times;</button>
+            <h2>Select Difficulty</h2>
+            <div class="difficulty-options">
+                <div class="difficulty-option" data-difficulty="easy">
+                    <h3>Easy</h3>
+                    <p>More time (45s), slower drops, 5 lives</p>
+                </div>
+                <div class="difficulty-option" data-difficulty="normal">
+                    <h3>Normal</h3>
+                    <p>Standard game (30s), 3 lives</p>
+                </div>
+                <div class="difficulty-option" data-difficulty="hard">
+                    <h3>Hard</h3>
+                    <p>Faster drops, 3 lives</p>
+                </div>
+                <div class="difficulty-option" data-difficulty="endless">
+                    <h3>Endless</h3>
+                    <p>No levels, time increases with each drop, speed gradually increases</p>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -53,6 +87,38 @@
             </div>
         </div>
     </div>
+    
+    <footer class="charity-footer">
+        <a href="https://www.charitywater.org/" target="_blank" rel="noopener noreferrer" class="charity-link">
+            Support charity: water - Bringing clean water to people in need
+        </a>
+    </footer>
+    
+    <div class="water-image right-water">
+        <img src="img/water1.jpg" alt="Water Image Right">
+    </div>
+    
+    <!-- Audio elements -->
+    <audio id="drop-sound" preload="auto">
+        <source src="sounds/drop.mp3" type="audio/mpeg">
+        <p>Your browser does not support HTML5 audio.</p>
+    </audio>
+    <audio id="bad-drop-sound" preload="auto">
+        <source src="sounds/bad-drop.mp3" type="audio/mpeg">
+        <p>Your browser does not support HTML5 audio.</p>
+    </audio>
+    <audio id="level-complete-sound" preload="auto">
+        <source src="sounds/level-complete.mp3" type="audio/mpeg">
+        <p>Your browser does not support HTML5 audio.</p>
+    </audio>
+    <audio id="game-over-sound" preload="auto">
+        <source src="sounds/game-over.mp3" type="audio/mpeg">
+        <p>Your browser does not support HTML5 audio.</p>
+    </audio>
+    <audio id="background-music" preload="auto" loop>
+        <source src="sounds/background-music.mp3" type="audio/mpeg">
+        <p>Your browser does not support HTML5 audio.</p>
+    </audio>
     
     <script src="script.js"></script>
 </body>
